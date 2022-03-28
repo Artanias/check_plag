@@ -1,0 +1,17 @@
+name: Plagiarism search
+
+on:
+  push:
+
+  workflow_dispatch:
+
+jobs:
+  plag-search:
+    runs-on: ubuntu-18.04
+    setps:
+      - uses: actions/checkout@v2
+
+      - name: Pull docker image
+        run: docker pull artanias/code-plagiarism-ubuntu18.04:latest
+
+      - name: docker run --rm --volume ./:/usr/src/works:ro "code-plagiarism-ubuntu18.04:latest" /bin/bash -c "codeplag --extension py --directories /usr/src/works/"
