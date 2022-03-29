@@ -14,5 +14,22 @@ jobs:
       - name: Pull docker image
         run: docker pull artanias/code-plagiarism-ubuntu18.04:latest
 
+      - name: Clone all branches
+        run: |
+          git clone https://github.com/Artanias/check_plag
+          cd check_plag
+          for branch in $(git branch --all | grep '^\s*remotes' | egrep --invert-match '(:?HEAD|main|master)$'); do
+              git branch --track "${branch##*/}" "$branch"
+          done
+
+      - name: Merge all branches
+        run: |
+          cd check_plag
+          git config --global user.email "robot@example.com"
+          git config --global user.name "robot"
+          git merge $(git branch | tr -s '\r\n*' ' ' | sed -r 's/main//' | sed -r 's/master//') -m "Merge all branches."
+
       - name: Run plagiarism searching
-        run: docker run --rm --volume $(pwd):/usr/src/works:ro "artanias/code-plagiarism-ubuntu18.04:latest" /bin/bash -c "codeplag --extension py --directories /usr/src/works/"
+        run: |
+          cd check_plag
+          docker run --rm --volume $(pwd):/usr/src/works:ro "artanias/code-plagiarism-ubuntu18.04:latest" /bin/bash -c "codeplag --extension py --directories /usr/src/works/"
