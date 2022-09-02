@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Pull docker image
-        run: docker pull artanias/code-plagiarism-ubuntu18.04:latest
+        run: docker pull artanias/codeplag-ubuntu20.04:latest
 
       - name: Clone all branches
         run: |
@@ -32,4 +32,12 @@ jobs:
       - name: Run plagiarism searching
         run: |
           cd check_plag
-          docker run --rm --volume $(pwd):/usr/src/works:ro "artanias/code-plagiarism-ubuntu18.04:latest" /bin/bash -c "codeplag --extension py --directories /usr/src/works/"
+          docker run --rm --volume $(pwd):/usr/src/works:ro --volume $(pwd)/reports:/usr/src/reports:rw "artanias/codeplag-ubuntu20.04:latest" /bin/bash -c "codeplag --extension py --directories /usr/src/works/ --reports_directory /usr/src/reports"
+
+      - name: Save reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: reports
+          path: check_plag/reports/
+          retention-days: 3
+          if-no-files-found: error
