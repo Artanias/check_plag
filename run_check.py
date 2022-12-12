@@ -6,13 +6,23 @@ import shutil
 import json
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal, TypedDict
 
+from codeplag.consts import UTIL_NAME
 from webparsers.github_parser import GitHubParser
 
 
+class PullCheckReport(TypedDict):
+    branch: str
+    status: Literal["passed", "failed"]
+    info: List[Dict[str, Any]]
+
+
+PullsReport = Dict[int, PullCheckReport]
+
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN", '')
 REPORTS_DIRECTORY = Path('./reports')
+PULL_REQ_TEMPL = "https://github.com/{owner}/{repo}/tree/{branch}/{branch}/"
 
 
 def run_util(cmd_seq: List[str], opts: Dict[str, Any]) -> subprocess.CompletedProcess:
@@ -22,7 +32,7 @@ def run_util(cmd_seq: List[str], opts: Dict[str, Any]) -> subprocess.CompletedPr
     )
 
     return subprocess.run(
-        f'codeplag {cmd_str} {options_str}',
+        f'{UTIL_NAME} {cmd_str} {options_str}',
         shell=True
     )
 
@@ -40,10 +50,16 @@ if __name__ == '__main__':
     pulls = parser.get_pulls_info(owner, repo)
 
     work_links = []
-    suspect_reports = {}
+    pulls_report: PullsReport = {}
     for pull in pulls:
-        work_links.append(f"https://github.com/{owner}/{repo}/tree/{pull.branch}/{pull.branch}/")
-        suspect_reports[pull.branch] = []
+        work_links.append(
+            PULL_REQ_TEMPL.format(owner=owner, repo=repo, branch=pull.branch)
+        )
+        pulls_report[pull.number] = {
+            'branch': pull.branch,
+            'status': 'passed',
+            'info': []
+        }
 
     REPORTS_DIRECTORY.mkdir(exist_ok=True)
     run_util(
@@ -63,11 +79,13 @@ if __name__ == '__main__':
     for filename in os.listdir(REPORTS_DIRECTORY):
         current_filepath = REPORTS_DIRECTORY / filename
         report = json.loads(current_filepath.read_text())
-        for branch_name in suspect_reports:
-            if re.compile(branch_name).search(report["first_path"]):
-                suspect_reports[branch_name].append(report)
-            elif re.compile(branch_name).search(report["second_path"]):
-                suspect_reports[branch_name].append(report)
+        for pull_report in pulls_report.values():
+            if re.compile(pull_report['branch']).search(report["first_path"]):
+                pull_report['info'].append(report)
+                pull_report['status'] = 'failed'
+            elif re.compile(pull_report['branch']).search(report["second_path"]):
+                pull_report['info'].append(report)
+                pull_report['status'] = 'failed'
 
-    print(json.dumps(suspect_reports, indent=4))
+    print(json.dumps(pulls_report, indent=2))
     shutil.rmtree(REPORTS_DIRECTORY, ignore_errors=True)
