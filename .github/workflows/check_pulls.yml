@@ -22,6 +22,6 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: reports
-          path: check_plag/reports/
+          path: reports/
           retention-days: 3
           if-no-files-found: error

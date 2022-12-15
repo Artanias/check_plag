@@ -87,5 +87,7 @@ if __name__ == '__main__':
                 pull_report['info'].append(report)
                 pull_report['status'] = 'failed'
 
-    print(json.dumps(pulls_report, indent=2))
+    with open(REPORTS_DIRECTORY / "main.json", "w") as f:
+        json.dump(pulls_report, f)
+
     shutil.rmtree(REPORTS_DIRECTORY, ignore_errors=True)
