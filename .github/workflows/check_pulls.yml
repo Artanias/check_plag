@@ -1,0 +1,27 @@
+name: Plagiarism search on pulls
+
+on:
+  push:
+
+  workflow_dispatch:
+
+jobs:
+  plag-search:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Pull docker image
+        run: docker pull artanias/codeplag-ubuntu20.04:0.2.8
+
+      - name: Run plagiarism searching
+        run: |
+          docker run --rm --volume $(pwd):/usr/src/works:ro --volume $(pwd)/reports:/usr/src/reports:rw "artanias/codeplag-ubuntu20.04:0.2.8" /bin/bash -c "python3.8 /usr/src/works/run_check.py --owner Artanias --repo check_plag"
+
+      - name: Save reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: reports
+          path: check_plag/reports/
+          retention-days: 3
+          if-no-files-found: error

@@ -21,7 +21,7 @@ class PullCheckReport(TypedDict):
 PullsReport = Dict[int, PullCheckReport]
 
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN", '')
-REPORTS_DIRECTORY = Path('./reports')
+REPORTS_DIRECTORY = Path('/usr/src/reports')
 PULL_REQ_TEMPL = "https://github.com/{owner}/{repo}/tree/{branch}/{branch}/"
 
 
@@ -71,7 +71,7 @@ if __name__ == '__main__':
         opts={
             'extension': 'py',
             'mode': 'one_to_one',
-            'directories': './',
+            'directories': '/usr/src/works/',
             'github-project-folders': work_links
         }
     )
