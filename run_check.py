@@ -38,6 +38,8 @@ def run_util(cmd_seq: List[str], opts: Dict[str, Any]) -> subprocess.CompletedPr
 
 
 if __name__ == '__main__':
+    shutil.rmtree(REPORTS_DIRECTORY, ignore_errors=True)
+
     parser = argparse.ArgumentParser("check_plag")
     parser.add_argument("--owner", required=True, type=str)
     parser.add_argument("--repo", required=True, type=str)
@@ -89,5 +91,3 @@ if __name__ == '__main__':
 
     with open(REPORTS_DIRECTORY / "main.json", "w") as f:
         json.dump(pulls_report, f)
-
-    shutil.rmtree(REPORTS_DIRECTORY, ignore_errors=True)
