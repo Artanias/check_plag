@@ -1,4 +1,3 @@
-import argparse
 import os
 import re
 import subprocess
@@ -6,7 +5,6 @@ import shutil
 import json
 
 from pathlib import Path
-import sys
 from typing import Any, Dict, List, Literal, TypedDict
 
 from codeplag.consts import UTIL_NAME
@@ -23,6 +21,7 @@ class PullCheckReport(TypedDict):
 PullsReport = Dict[int, PullCheckReport]
 
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN", '')
+OWNER, REPO = os.getenv("REPOSITORY", '').split('/', maxsplit=1)
 REPORTS_DIRECTORY = Path('/usr/src/reports')
 WORKS_DIRECTORY = Path('/usr/src/works')
 PULL_REQ_TEMPL = "https://github.com/{owner}/{repo}/tree/{branch}/{branch}/"
@@ -41,28 +40,14 @@ def run_util(cmd_seq: List[str], opts: Dict[str, Any]) -> subprocess.CompletedPr
 
 
 if __name__ == '__main__':
-    compl_proc = subprocess.run(
-        'git config --get remote.origin.url',
-        shell=True,
-        text=True,
-        stdout=subprocess.PIPE
-    )
-    match = re.search(r":(?P<owner>\w+)/(?P<repo>\w+)[.]git$", compl_proc.stdout)
-    if not match:
-        print("ERROR: current path is not a git repository.", file=sys.stderr)
-        exit(1)
-
-    owner = match.group('owner')
-    repo = match.group('repo')
-
     parser = GitHubParser(access_token=ACCESS_TOKEN)
-    pulls = parser.get_pulls_info(owner, repo)
+    pulls = parser.get_pulls_info(OWNER, REPO)
 
     work_links = []
     pulls_report: PullsReport = {}
     for pull in pulls:
         work_links.append(
-            PULL_REQ_TEMPL.format(owner=owner, repo=repo, branch=pull.branch)
+            PULL_REQ_TEMPL.format(owner=OWNER, repo=REPO, branch=pull.branch)
         )
         pulls_report[pull.number] = {
             'branch': pull.branch,
