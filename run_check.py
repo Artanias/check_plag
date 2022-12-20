@@ -6,9 +6,11 @@ import shutil
 import json
 
 from pathlib import Path
+import sys
 from typing import Any, Dict, List, Literal, TypedDict
 
 from codeplag.consts import UTIL_NAME
+from codeplag.consts import EXTENSION_CHOICE
 from webparsers.github_parser import GitHubParser
 
 
@@ -22,6 +24,7 @@ PullsReport = Dict[int, PullCheckReport]
 
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN", '')
 REPORTS_DIRECTORY = Path('/usr/src/reports')
+WORKS_DIRECTORY = Path('/usr/src/works')
 PULL_REQ_TEMPL = "https://github.com/{owner}/{repo}/tree/{branch}/{branch}/"
 
 
@@ -38,15 +41,19 @@ def run_util(cmd_seq: List[str], opts: Dict[str, Any]) -> subprocess.CompletedPr
 
 
 if __name__ == '__main__':
-    shutil.rmtree(REPORTS_DIRECTORY, ignore_errors=True)
+    compl_proc = subprocess.run(
+        'git config --get remote.origin.url',
+        shell=True,
+        text=True,
+        stdout=subprocess.PIPE
+    )
+    match = re.search(r":(?P<owner>\w+)/(?P<repo>\w+)[.]git$", compl_proc.stdout)
+    if not match:
+        print("ERROR: current path is not a git repository.", file=sys.stderr)
+        exit(1)
 
-    parser = argparse.ArgumentParser("check_plag")
-    parser.add_argument("--owner", required=True, type=str)
-    parser.add_argument("--repo", required=True, type=str)
-
-    arguments = vars(parser.parse_args())
-    owner = arguments.pop('owner')
-    repo = arguments.pop('repo')
+    owner = match.group('owner')
+    repo = match.group('repo')
 
     parser = GitHubParser(access_token=ACCESS_TOKEN)
     pulls = parser.get_pulls_info(owner, repo)
@@ -63,24 +70,26 @@ if __name__ == '__main__':
             'info': []
         }
 
+    shutil.rmtree(REPORTS_DIRECTORY, ignore_errors=True)
     REPORTS_DIRECTORY.mkdir(exist_ok=True)
     run_util(
         cmd_seq=['settings', 'modify'],
         opts={'reports': REPORTS_DIRECTORY}
     )
-    run_util(
-        cmd_seq=['check'],
-        opts={
-            'extension': 'py',
-            'mode': 'one_to_one',
-            'directories': '/usr/src/works/',
-            'github-project-folders': work_links
-        }
-    )
 
-    for filename in os.listdir(REPORTS_DIRECTORY):
-        current_filepath = REPORTS_DIRECTORY / filename
-        report = json.loads(current_filepath.read_text())
+    for extensin in EXTENSION_CHOICE:
+        run_util(
+            cmd_seq=['check'],
+            opts={
+                'extension': extensin,
+                'mode': 'one_to_one',
+                'directories': WORKS_DIRECTORY,
+                'github-project-folders': work_links
+            }
+        )
+
+    for filename in REPORTS_DIRECTORY.iterdir():
+        report = json.loads(filename.read_text())
         for pull_report in pulls_report.values():
             if re.compile(pull_report['branch']).search(report["first_path"]):
                 pull_report['info'].append(report)
