@@ -16,7 +16,7 @@ jobs:
 
       - name: Run plagiarism searching
         run: |
-          docker run --rm --volume $(pwd):/usr/src/works:ro --volume /usr/src/reports:/usr/src/reports:rw "artanias/codeplag-ubuntu20.04:0.2.8" /bin/bash -c "python3.8 /usr/src/works/run_check.py"
+          docker run --rm --volume $(pwd):/usr/src/works:ro --volume /usr/src/reports:/usr/src/reports:rw "apt install git -y && artanias/codeplag-ubuntu20.04:0.2.8" /bin/bash -c "python3.8 /usr/src/works/run_check.py"
 
       - name: Save reports
         uses: actions/upload-artifact@v3
